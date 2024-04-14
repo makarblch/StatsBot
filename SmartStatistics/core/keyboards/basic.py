@@ -61,7 +61,8 @@ stats_kb = ReplyKeyboardMarkup(
             KeyboardButton(text='Content')
         ],
         [
-            KeyboardButton(text='Back'),
+            KeyboardButton(text='Change number n'),
+            KeyboardButton(text='Back')
         ]
     ],
     resize_keyboard=True,

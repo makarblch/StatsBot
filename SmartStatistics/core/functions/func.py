@@ -6,6 +6,9 @@ from core.filters.stopworlds import stopword_txt
 import re
 import os.path
 
+# N - number of most popular analyzing users/messages
+N = 10
+
 
 # База данных для сообщений
 async def create_database(chat_id: int):
@@ -122,6 +125,15 @@ async def add_message(chat_id: int, message: Message, content: str):
             add_id, add_date, timezone))
     connection.commit()
     connection.close()
+
+
+async def change_n(message: Message):
+    try:
+        global N
+        N = int(message.text)
+        await message.answer("Successfully changed")
+    except:
+        await message.answer("Incorrect input, try again!")
 
 
 async def users_statistics(message: Message):

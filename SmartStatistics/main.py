@@ -28,6 +28,7 @@ class States(StatesGroup):
     waiting_for_start_date = State()
     waiting_for_end_date = State()
     waiting_for_continue = State()
+    waiting_for_n = State()
 
 
 @dp.message(F.content_type.in_({ContentType.NEW_CHAT_MEMBERS}))
@@ -64,6 +65,18 @@ async def waiting(message: Message):
 @dp.message(F.text.lower() == 'get statistics')
 async def statistics_bot(message: Message):
     await message.answer(text=f'Please, choose: ', reply_markup=basic.stats_kb)
+
+
+@dp.message(F.text.lower() == 'change number n')
+async def change_n_func(message: Message, state: FSMContext):
+    await state.set_state(States.waiting_for_n)
+    await message.answer(text=f'Please, input new number of analyzing users/messages')
+
+
+@dp.message(States.waiting_for_n)
+async def change_n_message(message: Message, state: FSMContext):
+    await func.change_n(message)
+    await state.set_state(States.waiting_for_button_click)
 
 
 @dp.message(F.text.lower() == 'stop list')

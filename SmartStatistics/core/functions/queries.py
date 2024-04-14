@@ -8,6 +8,7 @@ import re
 from itertools import chain
 from core.filters.stopworlds import stopword_txt
 from core.functions.small_func import get_stoplist, get_period
+from core.functions.func import N
 
 
 async def top_users(message: Message):
@@ -21,8 +22,8 @@ async def top_users(message: Message):
     results = cursor.fetchall()
     await chat_member_messages(results, message)
     df = pd.DataFrame({
-        "User": [i[0] for i in results][:max(10, len(results))],
-        "Result": [i[1] for i in results][:max(10, len(results))]
+        "User": [i[0] for i in results][:max(N, len(results))],
+        "Result": [i[1] for i in results][:max(N, len(results))]
     })
     await plots.bar_chart(df, message)
 
@@ -70,8 +71,8 @@ async def top_messages(message: Message):
     res = sorted(res, key=lambda x: x[1], reverse=True)
     print(res)
     df = pd.DataFrame({
-        "Message": [i[0] for i in res][:10],
-        "Count": [i[1] for i in res][:10]
+        "Message": [i[0] for i in res][:max(N, len(res))],
+        "Count": [i[1] for i in res][:max(N, len(res))]
     })
     await plots.pie_chart(df, message)
 
