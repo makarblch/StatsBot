@@ -8,22 +8,21 @@ import re
 from itertools import chain
 from core.filters.stopworlds import stopword_txt
 from core.functions.small_func import get_stoplist, get_period
-from core.functions.func import N
 
 
-async def top_users(message: Message):
+async def top_users(message: Message, N):
     chat_id = message.chat.id
     connection = sqlite3.connect(f'{chat_id}.db')
     cursor = connection.cursor()
     res = await get_period(message)
     cursor.execute(
-        'SELECT username, COUNT(*) FROM messages WHERE date_time > ? AND date_time < ? GROUP BY username ORDER BY COUNT(*) DESC',
+        'SELECT u.username, COUNT(*) FROM messages m INNER JOIN users u ON m.user_id == u.user_id WHERE m.date_time > ? AND m.date_time < ? GROUP BY u.user_id ORDER BY COUNT(*) DESC',
         (res[0], res[1],))
     results = cursor.fetchall()
     await chat_member_messages(results, message)
     df = pd.DataFrame({
-        "User": [i[0] for i in results][:max(N, len(results))],
-        "Result": [i[1] for i in results][:max(N, len(results))]
+        "User": [i[0] for i in results][:min(N, len(results))],
+        "Result": [i[1] for i in results][:min(N, len(results))]
     })
     await plots.bar_chart(df, message)
 
@@ -34,8 +33,7 @@ async def count_users(message: Message):
     cursor = connection.cursor()
     res = await get_period(message)
     cursor.execute(
-        'SELECT username, COUNT(*) FROM messages WHERE date_time > ? AND date_time < ? GROUP BY username ORDER BY COUNT(*) DESC',
-        (res[0], res[1],))
+        'SELECT user_id FROM users')
     results = cursor.fetchall()
     return len(results)
 
@@ -57,7 +55,7 @@ async def top_content(message: Message):
     await plots.pie_chart_content(df, message)
 
 
-async def top_messages(message: Message):
+async def top_messages(message: Message, N):
     chat_id = message.chat.id
     connection = sqlite3.connect(f'{chat_id}.db')
     cursor = connection.cursor()
@@ -65,14 +63,12 @@ async def top_messages(message: Message):
     cursor.execute(f'SELECT message FROM messages WHERE date_time > ? AND date_time < ?', (res[0], res[1],))
     stoplist = await get_stoplist(message)
     results = [list(filter(None, re.split(';|,| |-|:|\n', i[0]))) for i in cursor.fetchall()]
-    print(results)
     res = list(Counter(i for i in (str(i).lower() for i in list(chain.from_iterable(results))) if
                        i not in stoplist).items())
     res = sorted(res, key=lambda x: x[1], reverse=True)
-    print(res)
     df = pd.DataFrame({
-        "Message": [i[0] for i in res][:max(N, len(res))],
-        "Count": [i[1] for i in res][:max(N, len(res))]
+        "Message": [i[0] for i in res][:min(N, len(res))],
+        "Count": [i[1] for i in res][:min(N, len(res))]
     })
     await plots.pie_chart(df, message)
 
@@ -83,7 +79,7 @@ async def top_time(message: Message):
     cursor = connection.cursor()
     res = await get_period(message)
     cursor.execute(
-        'SELECT timezone, COUNT(*) FROM active WHERE date_time > ? AND date_time < ? GROUP BY timezone ORDER BY timezone',
+        'SELECT timezone, COUNT(*) FROM messages WHERE date_time > ? AND date_time < ? GROUP BY timezone ORDER BY timezone',
         (res[0], res[1],))
     results = cursor.fetchall()
 

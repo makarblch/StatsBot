@@ -6,8 +6,13 @@ from core.filters.stopworlds import stopword_txt
 import re
 import os.path
 
+
 # N - number of most popular analyzing users/messages
-N = 10
+async def create_n(chat_id: int):
+    if os.path.exists(f'n-value-{chat_id}.txt'):
+        return
+    with open(f'n-value-{chat_id}.txt', 'w') as file:
+        file.write("10")
 
 
 # База данных для сообщений
@@ -16,25 +21,24 @@ async def create_database(chat_id: int):
     connection = sqlite3.connect(f'{chat_id}.db')
     cursor = connection.cursor()
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS messages (
-    message_id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    username TEXT NOT NULL,
-    message TEXT NOT NULL,
-    content TEXT NOT NULL,
-    date_time TEXT NOT NULL,
-    language_code TEXT,
-    is_premium INTEGER,
-    is_bot INTEGER
+            CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY ,
+            username TEXT,
+            language TEXT NOT NULL,
+            is_premium INTEGER,
+            is_bot INTEGER
+            )
+            ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+        message_id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        content TEXT NOT NULL,
+        date_time TEXT NOT NULL,
+        timezone INTEGER
     )
     ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS active (
-        message_id INTEGER PRIMARY KEY,
-        date_time TEXT NOT NULL,
-        timezone INTEGER NOT NULL
-        )
-        ''')
     connection.commit()
 
 
@@ -106,56 +110,70 @@ async def add_message(chat_id: int, message: Message, content: str):
             add_name = message.from_user.first_name
 
     cursor.execute(
-        'INSERT INTO messages (message_id, user_id, username, message, content, date_time, language_code, is_premium, is_bot) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'SELECT COUNT(*) FROM users WHERE user_id = ?', (add_user_id, ))
+    results = cursor.fetchall()
+    if results[0][0] == 0:
+        cursor.execute(
+            'INSERT INTO users (user_id, username, language, is_premium, is_bot) '
+            'VALUES (?, ?, ?, ?, ?)',
+            (
+                add_user_id, add_name, add_language, add_is_premium, add_is_bot))
+    cursor.execute(
+        'INSERT INTO messages (message_id, user_id, message, content, date_time, timezone)'
+        'VALUES (?, ?, ?, ?, ?, ?)',
         (
-            add_id, add_user_id,
-            add_name,
+            add_id,
+            add_user_id,
             add_text,
             content,
             add_date,
-            add_language,
-            add_is_premium,
-            add_is_bot))
+            timezone
+            )
+    )
 
-    cursor.execute(
-        'INSERT INTO active (message_id, date_time, timezone) '
-        'VALUES (?, ?, ?)',
-        (
-            add_id, add_date, timezone))
     connection.commit()
     connection.close()
 
 
 async def change_n(message: Message):
     try:
-        global N
         N = int(message.text)
-        await message.answer("Successfully changed")
+        with open(f'n-value-{message.chat.id}.txt', 'w') as file:
+            file.write(str(N))
     except:
         await message.answer("Incorrect input, try again!")
 
 
+async def get_n(message: Message):
+    try:
+        with open(f'n-value-{message.chat.id}.txt', 'r') as file:
+            N = int(file.read().strip())
+        return N
+    except:
+        return 10
+
+
 async def users_statistics(message: Message):
-    await qu.top_users(message)
+    N = await get_n(message)
+    await qu.top_users(message, N)
 
 
 async def messages_statistics(message: Message):
-    await qu.top_messages(message)
+    N = await get_n(message)
+    await qu.top_messages(message, N)
 
 
 async def add_to_stop_list(message: Message):
     with open(f'stoplist-{message.chat.id}.txt', 'r') as file:
         stoplist = file.readlines()
         words = re.split(';|,| |-|:|\n', message.text)
-        print(words)
         for i in words:
             if i == "":
                 continue
             word = i.lower() + '\n'
             if word not in stoplist:
                 stoplist.append(word)
-                print(f"added: {i.lower()}")
+                # print(f"added: {i.lower()}")
         with open(f'stoplist-{message.chat.id}.txt', 'w') as file:
             file.writelines(stoplist)
         # print(stoplist)
@@ -165,14 +183,13 @@ async def remove_from_stop_list(message: Message):
     with open(f'stoplist-{message.chat.id}.txt', 'r') as file:
         stoplist = file.readlines()
         words = re.split(';|,| |-|:|\n', message.text)
-        print(words)
         for i in words:
             if i == "":
                 continue
             word = i.lower() + '\n'
             if word in stoplist:
                 stoplist.remove(word)
-                print(f"removed: {i.lower()}")
+                # print(f"removed: {i.lower()}")
 
     with open(f'stoplist-{message.chat.id}.txt', 'w') as file:
         file.writelines(stoplist)
@@ -218,8 +235,7 @@ async def activity_statistics(message: Message):
 async def err_statistics(message: Message):
     active = await qu.count_users(message)
     total = await fu.members_number_return(message)
-    print(f"active: {active}, total: {total}")
-    await message.answer(f"Err for this chat over the given period: {active / total}")
+    await message.answer(f"Err for this chat over the given period: {active / (total - 1)}")
 
 
 async def content_statistics(message: Message):

@@ -20,7 +20,7 @@ async def bar_chart(df, message: Message):
     plt.ylabel('Number of messages')
     plt.savefig(f'graph{message.chat.id}.jpg')
     # plt.show()
-    photo = FSInputFile(rf'C:\Users\79056\PycharmProjects\aiogram_test\graph{message.chat.id}.jpg')
+    photo = FSInputFile(rf'graph{message.chat.id}.jpg')
     await main.bot.send_photo(chat_id=message.chat.id, photo=photo)
 
 
@@ -32,7 +32,7 @@ async def bar_chart_active(df, message: Message):
     plt.ylabel('Number of messages')
     plt.savefig(f'graph-time-{message.chat.id}.jpg')
     # plt.show()
-    photo = FSInputFile(rf'C:\Users\79056\PycharmProjects\aiogram_test\graph-time-{message.chat.id}.jpg')
+    photo = FSInputFile(f'graph-time-{message.chat.id}.jpg')
     await main.bot.send_photo(chat_id=message.chat.id, photo=photo)
 
 
@@ -42,7 +42,7 @@ async def pie_chart(df, message: Message):
     plt.title('Most popular messages')
     plt.savefig(f'graph{message.chat.id}.jpg')
     # plt.show()
-    photo = FSInputFile(rf'C:\Users\79056\PycharmProjects\aiogram_test\graph{message.chat.id}.jpg')
+    photo = FSInputFile(rf'graph{message.chat.id}.jpg')
     await main.bot.send_photo(chat_id=message.chat.id, photo=photo)
 
 
@@ -52,5 +52,5 @@ async def pie_chart_content(df, message: Message):
     plt.title('Most popular content types')
     plt.savefig(f'graph-content-{message.chat.id}.jpg')
     # plt.show()
-    photo = FSInputFile(rf'C:\Users\79056\PycharmProjects\aiogram_test\graph-content-{message.chat.id}.jpg')
+    photo = FSInputFile(f'graph-content-{message.chat.id}.jpg')
     await main.bot.send_photo(chat_id=message.chat.id, photo=photo)

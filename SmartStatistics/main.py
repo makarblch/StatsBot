@@ -42,6 +42,7 @@ async def start(message: Message, state: FSMContext):
     await func.create_stoplist(message.chat.id)
     await func.create_period(message.chat.id)
     await func.create_database(message.chat.id)
+    await func.create_n(message.chat.id)
     await state.set_state(States.waiting_for_button_click)
 
 
